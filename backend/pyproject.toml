@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "FastAPI API for the Workspace."
+description = "Add your description here"
 authors = [
     { name = "arhmm7", email = "arhmm7@gmail.com" }
 ]

@@ -19,9 +19,7 @@ export function useWorkspace() {
 }
 
 export function useDashboardData() {
-  const value = useContext(DashboardContext);
-  if (!value) throw new Error("useDashboardData must be used inside a loaded DashboardShell");
-  return value;
+  return useContext(DashboardContext);
 }
 
 const navigation = [
@@ -90,7 +88,7 @@ export function DashboardShell({ children, user }: { children: ReactNode; user: 
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Workspace</p>
         {navigation.map(({ href, label, icon: Icon, exact }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
-          return <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition ${active ? "bg-[#0972d3]/20 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+          return <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium transition ${active ? "bg-white/5 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
             <Icon className={`h-[17px] w-[17px] ${active ? "text-[#ff9900]" : "text-slate-500 group-hover:text-slate-300"}`} />
             {label}
             {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#ff9900]" />}
@@ -136,9 +134,8 @@ export function DashboardShell({ children, user }: { children: ReactNode; user: 
         </header>
         <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-7 sm:py-9 lg:px-10">
           <div className="mb-7"><h2 className="text-2xl font-semibold tracking-tight text-slate-900">{page.title}</h2><p className="mt-1.5 text-sm text-slate-500">{page.description}</p></div>
-          {!dashboard && !loadError && <div role="status" className="rounded-xl border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">Loading your workspace…</div>}
           {loadError && <div role="alert" className="rounded-xl border border-rose-200 bg-white px-5 py-8 text-center"><p className="text-sm font-medium text-slate-800">Could not load your workspace</p><p className="mt-1 text-sm text-slate-500">{loadError}</p><button type="button" onClick={() => { setLoadError(""); setRetryCount((count) => count + 1); }} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Try again</button></div>}
-          {dashboard && children}
+          {children}
         </main>
       </div>
     </div>

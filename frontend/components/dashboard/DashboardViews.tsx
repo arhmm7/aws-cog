@@ -15,10 +15,16 @@ const roleNames: Record<string, string> = {
 
 function useOrganizations() {
   const { organizationId } = useWorkspace();
-  const { organizations } = useDashboardData();
+  const dashboard = useDashboardData();
+  if (!dashboard) return null;
+  const { organizations } = dashboard;
   return organizationId === null
     ? organizations
     : organizations.filter((organization) => organization.id === organizationId);
+}
+
+function DashboardLoading() {
+  return <div role="status" className="rounded-xl border border-slate-200 bg-white px-5 py-10 text-center text-sm text-slate-500">Loading your workspace…</div>;
 }
 
 function formatDate(date: string | null) {
@@ -59,6 +65,7 @@ function OrganizationHeading({ organization }: { organization: Organization }) {
 
 export function OverviewView() {
   const organizations = useOrganizations();
+  if (!organizations) return <DashboardLoading />;
   const projects = organizations.flatMap((organization) => organization.projects);
   const assets = projects.flatMap((project) => project.assets);
   const stats = [
@@ -101,6 +108,7 @@ export function OverviewView() {
 
 export function OrganizationsView() {
   const organizations = useOrganizations();
+  if (!organizations) return <DashboardLoading />;
   return <div className="grid gap-5 xl:grid-cols-2">{organizations.map((organization) => <article key={organization.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/[0.02] sm:p-6">
     <OrganizationHeading organization={organization} />
     <div className="mt-6 border-t border-slate-100 pt-5"><div className="mb-3 flex items-center justify-between"><h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Projects</h4><span className="text-xs text-slate-400">{organization.projects.length} total</span></div>
@@ -115,6 +123,7 @@ export function OrganizationsView() {
 
 export function ProjectsView() {
   const organizations = useOrganizations();
+  if (!organizations) return <DashboardLoading />;
   return <div className="space-y-6">{organizations.map((organization) => <section key={organization.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.02]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600"><Building2 className="h-4 w-4" /></div><div><h3 className="text-sm font-semibold text-slate-900">{organization.name}</h3><p className="mt-0.5 text-xs text-slate-500">Organization access · <span className="text-violet-700">{roleNames[organization.role]}</span></p></div></div><span className="text-xs text-slate-400">{organization.projects.length} projects</span></div>
     <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5">{organization.projects.map((project) => <ProjectCard key={project.id} project={project} />)}</div>
@@ -133,8 +142,9 @@ function ProjectCard({ project }: { project: Project }) {
 export function AssetsView() {
   const organizations = useOrganizations();
   const [query, setQuery] = useState("");
-  const flattened = useMemo(() => organizations.flatMap((organization) => organization.projects.flatMap((project) => project.assets.map((asset) => ({ asset, project, organization })))), [organizations]);
+  const flattened = useMemo(() => (organizations ?? []).flatMap((organization) => organization.projects.flatMap((project) => project.assets.map((asset) => ({ asset, project, organization })))), [organizations]);
   const filtered = flattened.filter(({ asset, project, organization }) => [asset.title, asset.description, project.title, organization.name, fileType(asset)].join(" ").toLowerCase().includes(query.toLowerCase()));
+  if (!organizations) return <DashboardLoading />;
 
   return <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.02]">
     <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"><div><h3 className="text-sm font-semibold text-slate-900">Project assets</h3><p className="mt-1 text-xs text-slate-500">Assets from projects assigned to you</p></div><label className="relative block w-full sm:w-72"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search assets..." className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100" /></label></div>

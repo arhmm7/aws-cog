@@ -22,6 +22,7 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     email_address: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
+    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
     memberships: Mapped[list["OrganizationMembership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -52,6 +53,7 @@ class OrganizationMembership(Base):
     role: Mapped[str] = mapped_column(String(32), nullable=False, default=Role.org_admin.value)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
     user: Mapped[User] = relationship(back_populates="memberships")
+    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
     organization: Mapped[Organization] = relationship(back_populates="memberships")
 
 class Project(Base):
@@ -78,6 +80,7 @@ class ProjectMembership(Base):
     role: Mapped[str] = mapped_column(String(32), nullable=False, default=Role.project_viewer.value)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
     user: Mapped[User] = relationship(back_populates="project_memberships")
+    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
     project: Mapped[Project] = relationship(back_populates="memberships")
 
 class Asset(Base):

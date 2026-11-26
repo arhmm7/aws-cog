@@ -6,6 +6,11 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { clientId, getCognitoClient } from "@/lib/cognito";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 
+// This segment renders user-specific content after validating the session cookie.
+// Its initial UI depends on the current request, so don't validate it as an
+// instant, prefetched shell.
+export const instant = false;
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return <Suspense fallback={<div className="min-h-screen bg-slate-50" />}><AuthenticatedWorkspace>{children}</AuthenticatedWorkspace></Suspense>;
 }
