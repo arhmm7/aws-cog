@@ -22,7 +22,9 @@ class User(Base):
     username: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     email_address: Mapped[str | None] = mapped_column(String, nullable=True, unique=True)
     name: Mapped[str | None] = mapped_column(String, nullable=True)
-    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
     memberships: Mapped[list["OrganizationMembership"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
@@ -51,9 +53,12 @@ class OrganizationMembership(Base):
         ForeignKey("organizations.id"), primary_key=True
     )
     role: Mapped[str] = mapped_column(String(32), nullable=False, default=Role.org_admin.value)
+    # Kept for compatibility; access checks require both membership flags active.
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
     user: Mapped[User] = relationship(back_populates="memberships")
-    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
     organization: Mapped[Organization] = relationship(back_populates="memberships")
 
 class Project(Base):
@@ -78,9 +83,12 @@ class ProjectMembership(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"), primary_key=True)
     role: Mapped[str] = mapped_column(String(32), nullable=False, default=Role.project_viewer.value)
+    # Kept for compatibility; access checks require both membership flags active.
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=true())
     user: Mapped[User] = relationship(back_populates="project_memberships")
-    active:Mapped[bool] = mapped_column(String,default=True,nullable=False)
+    active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
     project: Mapped[Project] = relationship(back_populates="memberships")
 
 class Asset(Base):

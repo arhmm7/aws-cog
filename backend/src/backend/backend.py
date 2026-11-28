@@ -10,7 +10,7 @@ from urllib.request import Request, urlopen
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import create_engine, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from backend.auth import verify_token
@@ -115,20 +115,28 @@ def current_user(
 
     user = db.scalar(select(User).where(User.sub_id == subject))
     email_user = db.scalar(select(User).where(User.email_address == email)) if email else None
+    preserve_existing_email = False
+    if user is not None and not user.active:
+        raise HTTPException(status_code=403, detail="User access is disabled")
     if user is None and email_user is not None:
+        if not email_user.active:
+            raise HTTPException(status_code=403, detail="User access is disabled")
         user = email_user
         user.sub_id = subject
     elif user is not None and email_user is not None and email_user.id != user.id:
-        transfer_memberships(db, email_user, user)
+        if email_user.active:
+            transfer_memberships(db, email_user, user)
+        else:
+            preserve_existing_email = True
 
     if user is None:
         user = User(sub_id=subject)
         db.add(user)
-    if email:
+    if email and not preserve_existing_email:
         user.email_address = email
-    if username:
+    if username and not preserve_existing_email:
         user.username = username
-    if name:
+    if name and not preserve_existing_email:
         user.name = name
     try:
         db.commit()
@@ -137,6 +145,8 @@ def current_user(
         user = db.scalar(select(User).where(User.sub_id == subject))
         if user is None:
             raise
+    if not user.active:
+        raise HTTPException(status_code=403, detail="User access is disabled")
     return user
 
 
@@ -145,8 +155,11 @@ def organization_membership(db: Session, user_id: int, organization_id: int):
         select(OrganizationMembership).where(
             OrganizationMembership.user_id == user_id,
             OrganizationMembership.organization_id == organization_id,
+            OrganizationMembership.active.is_(True),
             OrganizationMembership.is_active.is_(True),
+            Organization.is_active.is_(True),
         )
+        .join(Organization, Organization.id == OrganizationMembership.organization_id)
     )
 
 
@@ -164,9 +177,13 @@ def accessible_projects(
         )
         .where(
             ProjectMembership.user_id == user_id,
+            ProjectMembership.active.is_(True),
             ProjectMembership.is_active.is_(True),
             OrganizationMembership.user_id == user_id,
+            OrganizationMembership.active.is_(True),
             OrganizationMembership.is_active.is_(True),
+            Organization.is_active.is_(True),
+            Project.is_active.is_(True),
         )
     ).all()
     by_id: dict[int, tuple[Project, str]] = {
@@ -182,8 +199,21 @@ def accessible_projects(
         )
         .where(
             OrganizationMembership.user_id == user_id,
+            OrganizationMembership.active.is_(True),
             OrganizationMembership.is_active.is_(True),
             OrganizationMembership.role == "org_admin",
+            Organization.is_active.is_(True),
+            Project.is_active.is_(True),
+            ~select(ProjectMembership.user_id)
+            .where(
+                ProjectMembership.user_id == user_id,
+                ProjectMembership.project_id == Project.id,
+                or_(
+                    ProjectMembership.active.is_(False),
+                    ProjectMembership.is_active.is_(False),
+                ),
+            )
+            .exists(),
         )
     )
     if organization_id is not None:
@@ -248,7 +278,9 @@ def dashboard_data(db: Session, user: User) -> dict:
         .join(Organization, Organization.id == OrganizationMembership.organization_id)
         .where(
             OrganizationMembership.user_id == user.id,
+            OrganizationMembership.active.is_(True),
             OrganizationMembership.is_active.is_(True),
+            Organization.is_active.is_(True),
         )
         .order_by(Organization.name)
     ).all()
